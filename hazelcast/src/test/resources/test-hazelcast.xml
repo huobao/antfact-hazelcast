@@ -22,5 +22,6 @@
         <name>foobar</name>
         <password>dev-pass</password>
     </group>
+    <management-center enabled="true" update-interval="3">http://localhost:8080/caster-document</management-center>
 
 </hazelcast>

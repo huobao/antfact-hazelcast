@@ -16,6 +16,9 @@
 
 package com.hazelcast.monitor.impl;
 
+import static com.hazelcast.util.JsonUtil.getInt;
+import static com.hazelcast.util.JsonUtil.getLong;
+
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import com.hazelcast.map.MapDataSerializerHook;
@@ -28,43 +31,40 @@ import com.hazelcast.util.Clock;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
-import static com.hazelcast.util.JsonUtil.getInt;
-import static com.hazelcast.util.JsonUtil.getLong;
-
 /**
  * Default implementation of {@link LocalMapStats}
  */
 public class LocalMapStatsImpl
-        implements LocalMapStats, IdentifiedDataSerializable {
+    implements LocalMapStats, IdentifiedDataSerializable {
 
     private static final AtomicLongFieldUpdater<LocalMapStatsImpl> LAST_ACCESS_TIME_UPDATER = AtomicLongFieldUpdater
-            .newUpdater(LocalMapStatsImpl.class, "lastAccessTime");
+        .newUpdater(LocalMapStatsImpl.class, "lastAccessTime");
     private static final AtomicLongFieldUpdater<LocalMapStatsImpl> LAST_UPDATE_TIME_UPDATER = AtomicLongFieldUpdater
-            .newUpdater(LocalMapStatsImpl.class, "lastUpdateTime");
+        .newUpdater(LocalMapStatsImpl.class, "lastUpdateTime");
     private static final AtomicLongFieldUpdater<LocalMapStatsImpl> HITS_UPDATER = AtomicLongFieldUpdater
-            .newUpdater(LocalMapStatsImpl.class, "hits");
+        .newUpdater(LocalMapStatsImpl.class, "hits");
     private static final AtomicLongFieldUpdater<LocalMapStatsImpl> NUMBER_OF_OTHER_OPERATIONS_UPDATER = AtomicLongFieldUpdater
-            .newUpdater(LocalMapStatsImpl.class, "numberOfOtherOperations");
+        .newUpdater(LocalMapStatsImpl.class, "numberOfOtherOperations");
     private static final AtomicLongFieldUpdater<LocalMapStatsImpl> NUMBER_OF_EVENTS_UPDATER = AtomicLongFieldUpdater
-            .newUpdater(LocalMapStatsImpl.class, "numberOfEvents");
+        .newUpdater(LocalMapStatsImpl.class, "numberOfEvents");
     private static final AtomicLongFieldUpdater<LocalMapStatsImpl> GET_COUNT_UPDATER = AtomicLongFieldUpdater
-            .newUpdater(LocalMapStatsImpl.class, "getCount");
+        .newUpdater(LocalMapStatsImpl.class, "getCount");
     private static final AtomicLongFieldUpdater<LocalMapStatsImpl> PUT_COUNT_UPDATER = AtomicLongFieldUpdater
-            .newUpdater(LocalMapStatsImpl.class, "putCount");
+        .newUpdater(LocalMapStatsImpl.class, "putCount");
     private static final AtomicLongFieldUpdater<LocalMapStatsImpl> REMOVE_COUNT_UPDATER = AtomicLongFieldUpdater
-            .newUpdater(LocalMapStatsImpl.class, "removeCount");
+        .newUpdater(LocalMapStatsImpl.class, "removeCount");
     private static final AtomicLongFieldUpdater<LocalMapStatsImpl> TOTAL_GET_LATENCIES_UPDATER = AtomicLongFieldUpdater
-            .newUpdater(LocalMapStatsImpl.class, "totalGetLatencies");
+        .newUpdater(LocalMapStatsImpl.class, "totalGetLatencies");
     private static final AtomicLongFieldUpdater<LocalMapStatsImpl> TOTAL_PUT_LATENCIES_UPDATER = AtomicLongFieldUpdater
-            .newUpdater(LocalMapStatsImpl.class, "totalPutLatencies");
+        .newUpdater(LocalMapStatsImpl.class, "totalPutLatencies");
     private static final AtomicLongFieldUpdater<LocalMapStatsImpl> TOTAL_REMOVE_LATENCIES_UPDATER = AtomicLongFieldUpdater
-            .newUpdater(LocalMapStatsImpl.class, "totalRemoveLatencies");
+        .newUpdater(LocalMapStatsImpl.class, "totalRemoveLatencies");
     private static final AtomicLongFieldUpdater<LocalMapStatsImpl> MAX_GET_LATENCY_UPDATER = AtomicLongFieldUpdater
-            .newUpdater(LocalMapStatsImpl.class, "maxGetLatency");
+        .newUpdater(LocalMapStatsImpl.class, "maxGetLatency");
     private static final AtomicLongFieldUpdater<LocalMapStatsImpl> MAX_PUT_LATENCY_UPDATER = AtomicLongFieldUpdater
-            .newUpdater(LocalMapStatsImpl.class, "maxPutLatency");
+        .newUpdater(LocalMapStatsImpl.class, "maxPutLatency");
     private static final AtomicLongFieldUpdater<LocalMapStatsImpl> MAX_REMOVE_LATENCY_UPDATER = AtomicLongFieldUpdater
-            .newUpdater(LocalMapStatsImpl.class, "maxRemoveLatency");
+        .newUpdater(LocalMapStatsImpl.class, "maxRemoveLatency");
 
     // These fields are only accessed through the updaters
     private volatile long lastAccessTime;
@@ -125,7 +125,7 @@ public class LocalMapStatsImpl
 
     @Override
     public void writeData(ObjectDataOutput out)
-            throws IOException {
+        throws IOException {
         out.writeLong(getCount);
         out.writeLong(putCount);
         out.writeLong(removeCount);
@@ -158,7 +158,7 @@ public class LocalMapStatsImpl
 
     @Override
     public void readData(ObjectDataInput in)
-            throws IOException {
+        throws IOException {
         GET_COUNT_UPDATER.set(this, in.readLong());
         PUT_COUNT_UPDATER.set(this, in.readLong());
         REMOVE_COUNT_UPDATER.set(this, in.readLong());
@@ -316,6 +316,15 @@ public class LocalMapStatsImpl
         MAX_PUT_LATENCY_UPDATER.set(this, Math.max(maxPutLatency, latency));
     }
 
+    public void incrementPuts(long entrySize, long latency) {
+        if (entrySize <= 0) {
+            return;
+        }
+        PUT_COUNT_UPDATER.addAndGet(this, entrySize);
+        TOTAL_PUT_LATENCIES_UPDATER.addAndGet(this, latency);
+        MAX_PUT_LATENCY_UPDATER.set(this, Math.max(maxPutLatency, latency / entrySize));
+    }
+
     @Override
     public long getGetOperationCount() {
         return getCount;
@@ -325,6 +334,15 @@ public class LocalMapStatsImpl
         GET_COUNT_UPDATER.incrementAndGet(this);
         TOTAL_GET_LATENCIES_UPDATER.addAndGet(this, latency);
         MAX_GET_LATENCY_UPDATER.set(this, Math.max(maxGetLatency, latency));
+    }
+
+    public void incrementGets(long entrySize, long latency) {
+        if (entrySize <= 0) {
+            return;
+        }
+        GET_COUNT_UPDATER.addAndGet(this, entrySize);
+        TOTAL_GET_LATENCIES_UPDATER.addAndGet(this, latency);
+        MAX_GET_LATENCY_UPDATER.set(this, Math.max(maxGetLatency, latency / entrySize));
     }
 
     @Override
@@ -480,26 +498,26 @@ public class LocalMapStatsImpl
     @Override
     public String toString() {
         return "LocalMapStatsImpl{"
-                + "lastAccessTime=" + lastAccessTime
-                + ", lastUpdateTime=" + lastUpdateTime
-                + ", hits=" + hits
-                + ", numberOfOtherOperations=" + numberOfOtherOperations
-                + ", numberOfEvents=" + numberOfEvents
-                + ", getCount=" + getCount
-                + ", putCount=" + putCount
-                + ", removeCount=" + removeCount
-                + ", totalGetLatencies=" + totalGetLatencies
-                + ", totalPutLatencies=" + totalPutLatencies
-                + ", totalRemoveLatencies=" + totalRemoveLatencies
-                + ", ownedEntryCount=" + ownedEntryCount
-                + ", backupEntryCount=" + backupEntryCount
-                + ", backupCount=" + backupCount
-                + ", ownedEntryMemoryCost=" + ownedEntryMemoryCost
-                + ", backupEntryMemoryCost=" + backupEntryMemoryCost
-                + ", creationTime=" + creationTime
-                + ", lockedEntryCount=" + lockedEntryCount
-                + ", dirtyEntryCount=" + dirtyEntryCount
-                + ", heapCost=" + heapCost
-                + '}';
+            + "lastAccessTime=" + lastAccessTime
+            + ", lastUpdateTime=" + lastUpdateTime
+            + ", hits=" + hits
+            + ", numberOfOtherOperations=" + numberOfOtherOperations
+            + ", numberOfEvents=" + numberOfEvents
+            + ", getCount=" + getCount
+            + ", putCount=" + putCount
+            + ", removeCount=" + removeCount
+            + ", totalGetLatencies=" + totalGetLatencies
+            + ", totalPutLatencies=" + totalPutLatencies
+            + ", totalRemoveLatencies=" + totalRemoveLatencies
+            + ", ownedEntryCount=" + ownedEntryCount
+            + ", backupEntryCount=" + backupEntryCount
+            + ", backupCount=" + backupCount
+            + ", ownedEntryMemoryCost=" + ownedEntryMemoryCost
+            + ", backupEntryMemoryCost=" + backupEntryMemoryCost
+            + ", creationTime=" + creationTime
+            + ", lockedEntryCount=" + lockedEntryCount
+            + ", dirtyEntryCount=" + dirtyEntryCount
+            + ", heapCost=" + heapCost
+            + '}';
     }
 }

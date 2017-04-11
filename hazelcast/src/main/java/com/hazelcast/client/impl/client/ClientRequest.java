@@ -65,6 +65,24 @@ public abstract class ClientRequest implements SecureRequest, VersionedPortable 
         this.serializationService = serializationService;
     }
 
+    /**
+     * Called on node side, before starting any operation.
+     */
+    protected void beforeProcess() {
+    }
+
+    /**
+     * Called on node side, after process is run and right before sending the response to the client.
+     */
+    protected void beforeResponse() {
+    }
+
+    /**
+     * Called on node side, after sending the response to the client.
+     */
+    protected void afterResponse() {
+    }
+
     public abstract void process() throws Exception;
 
     public ClientEngine getClientEngine() {

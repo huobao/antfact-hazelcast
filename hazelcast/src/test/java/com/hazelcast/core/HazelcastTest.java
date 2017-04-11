@@ -16,17 +16,21 @@
 
 package com.hazelcast.core;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+
 import com.hazelcast.config.Config;
+import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.test.HazelcastParallelClassRunner;
 import com.hazelcast.test.HazelcastTestSupport;
 import com.hazelcast.test.annotation.QuickTest;
+
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
+import java.io.InputStream;
 
 @RunWith(HazelcastParallelClassRunner.class)
 @Category(QuickTest.class)
@@ -47,9 +51,7 @@ public class HazelcastTest extends HazelcastTestSupport {
     public void getOrCreateHazelcastInstance_noneExisting() {
         Config config = new Config(randomString());
         config.getGroupConfig().setName(randomString());
-
         HazelcastInstance hz = Hazelcast.getOrCreateHazelcastInstance(config);
-
         assertNotNull(hz);
         assertEquals(config.getInstanceName(), hz.getName());
         assertSame(hz, Hazelcast.getHazelcastInstanceByName(config.getInstanceName()));
@@ -67,5 +69,20 @@ public class HazelcastTest extends HazelcastTestSupport {
 
         assertSame(hz1, hz2);
         hz1.shutdown();
+    }
+
+    @Test
+    public void createHazelcast() throws Exception {
+        InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("test-hazelcast.xml");
+        XmlConfigBuilder xmlConfigBuilder = new XmlConfigBuilder(inputStream);
+        Config config = xmlConfigBuilder.build();
+        config.setInstanceName(randomString());
+        HazelcastInstance hz = Hazelcast.getOrCreateHazelcastInstance(config);
+        try {
+            Thread.sleep(Integer.MAX_VALUE);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 }

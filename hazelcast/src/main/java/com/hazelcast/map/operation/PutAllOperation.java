@@ -122,6 +122,10 @@ public class PutAllOperation extends AbstractMapOperation implements PartitionAw
         recordStore.evictEntries(now, backup);
     }
 
+    public int getEntrySize(){
+        return entrySet.getEntrySet().size();
+    }
+
     @Override
     public Object getResponse() {
         return true;

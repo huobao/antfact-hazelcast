@@ -29,10 +29,12 @@ public abstract class AllPartitionsClientRequest extends ClientRequest {
 
     @Override
     public final void process() throws Exception {
+        beforeProcess();
         ClientEndpoint endpoint = getEndpoint();
         OperationFactory operationFactory = new OperationFactoryWrapper(createOperationFactory(), endpoint.getUuid());
         Map<Integer, Object> map = operationService.invokeOnAllPartitions(getServiceName(), operationFactory);
         Object result = reduce(map);
+        beforeResponse();
         endpoint.sendResponse(result, getCallId());
     }
 

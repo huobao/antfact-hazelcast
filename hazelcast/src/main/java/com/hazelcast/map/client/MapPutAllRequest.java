@@ -18,6 +18,7 @@ package com.hazelcast.map.client;
 
 import com.hazelcast.client.impl.client.AllPartitionsClientRequest;
 import com.hazelcast.client.impl.client.SecureRequest;
+import com.hazelcast.map.MapContainer;
 import com.hazelcast.map.MapEntrySet;
 import com.hazelcast.map.MapPortableHook;
 import com.hazelcast.map.MapService;
@@ -32,6 +33,7 @@ import com.hazelcast.security.permission.ActionConstants;
 import com.hazelcast.security.permission.MapPermission;
 import com.hazelcast.spi.OperationFactory;
 import com.hazelcast.util.ExceptionUtil;
+
 import java.io.IOException;
 import java.security.Permission;
 import java.util.HashMap;
@@ -41,6 +43,7 @@ public class MapPutAllRequest extends AllPartitionsClientRequest implements Port
 
     protected String name;
     private MapEntrySet entrySet;
+    private long startTime;
 
     public MapPutAllRequest() {
     }
@@ -56,6 +59,22 @@ public class MapPutAllRequest extends AllPartitionsClientRequest implements Port
 
     public int getClassId() {
         return MapPortableHook.PUT_ALL;
+    }
+
+    @Override
+    protected void beforeProcess() {
+        startTime = System.currentTimeMillis();
+    }
+
+    @Override
+    protected void beforeResponse() {
+        final long latency = System.currentTimeMillis() - startTime;
+        final MapService mapService = getService();
+        MapContainer mapContainer = mapService.getMapServiceContext().getMapContainer(name);
+        if (mapContainer.getMapConfig().isStatisticsEnabled()) {
+            mapService.getMapServiceContext().getLocalMapStatsProvider()
+                      .getLocalMapStatsImpl(name).incrementPuts(entrySet.getEntrySet().size(), latency);
+        }
     }
 
     @Override
