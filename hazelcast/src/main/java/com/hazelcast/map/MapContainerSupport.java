@@ -1,12 +1,12 @@
 package com.hazelcast.map;
 
-import com.hazelcast.config.MapConfig;
-import com.hazelcast.config.MapStoreConfig;
-import com.hazelcast.config.MaxSizeConfig;
-
 import static com.hazelcast.config.MaxSizeConfig.MaxSizePolicy.PER_NODE;
 import static com.hazelcast.map.eviction.ExpirationTimeSetter.calculateMaxIdleMillis;
 import static com.hazelcast.map.eviction.ExpirationTimeSetter.calculateTTLMillis;
+
+import com.hazelcast.config.MapConfig;
+import com.hazelcast.config.MapStoreConfig;
+import com.hazelcast.config.MaxSizeConfig;
 
 /**
  * Contains support methods of a map container.
@@ -17,17 +17,17 @@ abstract class MapContainerSupport {
 
     protected volatile MapConfig mapConfig;
 
-    private final long maxIdleMillis;
-
-    private final long ttlMillisFromConfig;
+//    private final long maxIdleMillis;
+//
+//    private final long ttlMillisFromConfig;
 
     private final String name;
 
     protected MapContainerSupport(String name, MapConfig mapConfig) {
         this.name = name;
         this.mapConfig = mapConfig;
-        this.maxIdleMillis = calculateMaxIdleMillis(mapConfig);
-        this.ttlMillisFromConfig = calculateTTLMillis(mapConfig);
+//        this.maxIdleMillis = calculateMaxIdleMillis(mapConfig);
+//        this.ttlMillisFromConfig = calculateTTLMillis(mapConfig);
     }
 
     public boolean isMapStoreEnabled() {
@@ -69,11 +69,11 @@ abstract class MapContainerSupport {
     }
 
     public long getMaxIdleMillis() {
-        return maxIdleMillis;
+        return calculateMaxIdleMillis(mapConfig);
     }
 
     public long getTtlMillisFromConfig() {
-        return ttlMillisFromConfig;
+        return calculateTTLMillis(mapConfig);
     }
 
     public String getName() {
